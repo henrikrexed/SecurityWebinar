@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    meta.helm.sh/release-name: unguard
+    meta.helm.sh/release-namespace: unguard
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: profile-service
+    app.kubernetes.io/part-of: unguard
+  name: unguard-profile-service
+  namespace: unguard
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: profile-service
+      app.kubernetes.io/part-of: unguard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: profile-service
+        app.kubernetes.io/part-of: unguard
+    spec:
+      serviceAccountName: unguard-user
+      containers:
+      - env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:h2:file:./database/bio
+        - name: SPRING_DATASOURCE_USERNAME
+          value: sa
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: password
+        - name: OTEL_LOGS_EXPORTER
+          value: none
+        - name: OTEL_METRICS_EXPORTER
+          value: none
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: service.name=unguard-profile-service
+        - name: OTEL_TRACES_EXPORTER
+          value: none
+        image: ghcr.io/dynatrace-oss/unguard/unguard-profile-service:0.9.4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: profile-service
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources: {}
+      terminationGracePeriodSeconds: 30
+
